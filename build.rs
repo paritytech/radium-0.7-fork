@@ -85,13 +85,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         | "thumbv8m.base" | "thumbv8m.main" | "armebv7r" | "armv7r" => atomics.has_64 = false,
         // These ARMv7 targets have 32-bit pointers and 64-bit atomics.
         "armv7" | "armv7a" | "armv7s" => atomics.has_64 = true,
-        // "riscv32imc-unknown-none-elf" and "riscv32imac-unknown-none-elf" are
-        // both `target_arch = "riscv32", and have no stable `cfg`-discoverable
-        // distinction. As such, the non-atomic RISC-V targets must be
-        // discovered here.
-        "riscv32i" | "riscv32imc" | "thumbv6m" => atomics = Atomics::NONE,
+        "thumbv6m" => atomics = Atomics::NONE,
         _ => {}
     }
+
+    if tgt_arch.starts_with("riscv") {
+        let features = &tgt_arch[..7];
+        if !(features.contains("a") || features.contains("g")) {
+            atomics = Atomics::NONE;
+        } else if tgt_arch.starts_with("riscv32") {
+            atomics.has_64 = false;
+        }
+    }
+
     #[allow(clippy::match_single_binding, clippy::single_match)]
     match &*env_arch {
         "avr" => atomics = Atomics::NONE,
